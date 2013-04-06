@@ -16,3 +16,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+%w{ lxc debootstrap wget bsdtar git pkg-config libsqlite3-dev linux-image-3.2.0-23-generic linux-image-extra-3.2.0-23-virtual linux-headers-3.2.0-23-generic }.each do |name|
+  package name
+end
+
+execute "fetch go" do
+  creates "/usr/local/go/bin/go"
+  command "wget -O - #{node['docker']['go_url']} | /bin/tar xz -C /usr/local"
+end
+
+execute "fetch docker" do
+  command "wget -O - #{node['docker']['docker_url']} | /bin/tar xz -C /tmp"
+end
+
+template "/etc/init/dockerd.conf" do
+  source "dockerd.conf"
+  mode "0600"
+  owner "root"
+  group "root"
+end
+
+template "/home/vagrant/.profile" do
+  source "profile"
+  mode "0644"
+  owner "vagrant"
+  group "vagrant"
+end
+
+execute "copy docker bin" do
+  command "/usr/bin/sudo /bin/cp -f /tmp/docker-master/docker /usr/local/bin/"
+end
+
+service "dockerd" do
+  provider Chef::Provider::Service::Upstart  
+  supports :status => true, :restart => true, :reload => true
+  action [ :start ]
+end
