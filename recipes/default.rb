@@ -17,8 +17,16 @@
 # limitations under the License.
 #
 
-%w{ lxc debootstrap wget bsdtar git pkg-config libsqlite3-dev linux-image-3.2.0-23-generic linux-image-extra-3.2.0-23-virtual linux-headers-3.2.0-23-generic }.each do |name|
+%w{ lxc debootstrap wget bsdtar git pkg-config libsqlite3-dev }.each do |name|
   package name
+end
+
+["linux-image-#{node['kernel']['release']}", "linux-headers-#{node['kernel']['release']}"].each do |name|
+  package name
+end
+
+package "linux-image-extra-#{node['kernel']['release']}" do
+  not_if { node["kernel"]["modules"].has_key?("aufs") }
 end
 
 execute "fetch go" do
@@ -42,6 +50,7 @@ template "/home/vagrant/.profile" do
   mode "0644"
   owner "vagrant"
   group "vagrant"
+  only_if { File.exists?("/home/vagrant") }
 end
 
 execute "copy docker bin" do
