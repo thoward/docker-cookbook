@@ -25,7 +25,12 @@ end
   package name
 end
 
-package "linux-image-extra-#{node['kernel']['release']}" do
+# If aufs isn't available, do our best to install the correct 
+# linux-image-extra package. This is somewhat messy because the
+# naming of these packages is very inconsistent across kernel
+# versions
+extra_package = %x(apt-cache search linux-image-extra-`uname -r | grep --only-matching -e [0-9]\.[0-9]\.[0-9]-[0-9]*` | cut -d " " -f 1).strip
+package extra_package do
   not_if { node["kernel"]["modules"].has_key?("aufs") }
 end
 
