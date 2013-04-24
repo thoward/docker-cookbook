@@ -34,6 +34,7 @@ package extra_package do
   not_if "modprobe -l | grep aufs"
 end
 
+include_recipe("modules::default")
 modules "aufs" do
   action :save
 end
