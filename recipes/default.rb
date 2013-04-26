@@ -17,12 +17,14 @@
 # limitations under the License.
 #
 
-%w{ lxc debootstrap wget bsdtar git pkg-config libsqlite3-dev }.each do |name|
-  package name
+apt_repository "docker" do
+  uri "http://ppa.launchpad.net/dotcloud/lxc-docker/ubuntu"
+  distribution "precise"
+  components ["main"]
 end
 
-["linux-image-#{node['kernel']['release']}", "linux-headers-#{node['kernel']['release']}"].each do |name|
-  package name
+package "lxc-docker" do
+  options "--force-yes"
 end
 
 # If aufs isn't available, do our best to install the correct 
@@ -34,22 +36,6 @@ package extra_package do
   not_if { "modprobe -l | grep aufs" }
 end
 
-execute "fetch go" do
-  creates "/usr/local/go/bin/go"
-  command "wget -O - #{node['docker']['go_url']} | /bin/tar xz -C /usr/local"
-end
-
-execute "fetch docker" do
-  command "wget -O - #{node['docker']['docker_url']} | /bin/tar xz -C /tmp"
-end
-
-template "/etc/init/dockerd.conf" do
-  source "dockerd.conf"
-  mode "0600"
-  owner "root"
-  group "root"
-end
-
 template "/home/vagrant/.profile" do
   source "profile"
   mode "0644"
@@ -58,11 +44,7 @@ template "/home/vagrant/.profile" do
   only_if { File.exists?("/home/vagrant") }
 end
 
-execute "copy docker bin" do
-  command "/usr/bin/sudo /bin/cp -f /tmp/docker-master/docker /usr/local/bin/"
-end
-
-service "dockerd" do
+service "docker" do
   provider Chef::Provider::Service::Upstart  
   supports :status => true, :restart => true, :reload => true
   action [ :start ]
