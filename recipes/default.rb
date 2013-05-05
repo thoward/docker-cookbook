@@ -17,12 +17,14 @@
 # limitations under the License.
 #
 
-%w{ lxc debootstrap wget bsdtar git pkg-config libsqlite3-dev }.each do |name|
-  package name
+apt_repository "docker" do
+  uri "http://ppa.launchpad.net/dotcloud/lxc-docker/ubuntu"
+  distribution "precise"
+  components ["main"]
 end
 
-["linux-image-#{node['kernel']['release']}", "linux-headers-#{node['kernel']['release']}"].each do |name|
-  package name
+package "lxc-docker" do
+  options "--force-yes"
 end
 
 # If aufs isn't available, do our best to install the correct 
@@ -32,7 +34,7 @@ end
 extra_package = %x(apt-cache search linux-image-extra-`uname -r | grep --only-matching -e [0-9]\.[0-9]\.[0-9]-[0-9]*` | cut -d " " -f 1).strip
 unless extra_package.empty?
   package extra_package do
-    not_if { node["kernel"]["modules"].has_key?("aufs") }
+    not_if { "modprobe -l | grep aufs" }
   end
 end
 
@@ -60,11 +62,7 @@ template "/home/vagrant/.profile" do
   only_if { File.exists?("/home/vagrant") }
 end
 
-execute "copy docker bin" do
-  command "/usr/bin/sudo /bin/cp -f /tmp/docker-master/docker /usr/local/bin/"
-end
-
-service "dockerd" do
+service "docker" do
   provider Chef::Provider::Service::Upstart  
   supports :status => true, :restart => true, :reload => true
   action [ :start ]
