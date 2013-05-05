@@ -30,8 +30,10 @@ end
 # naming of these packages is very inconsistent across kernel
 # versions
 extra_package = %x(apt-cache search linux-image-extra-`uname -r | grep --only-matching -e [0-9]\.[0-9]\.[0-9]-[0-9]*` | cut -d " " -f 1).strip
-package extra_package do
-  not_if { node["kernel"]["modules"].has_key?("aufs") }
+unless extra_package.empty?
+  package extra_package do
+    not_if { node["kernel"]["modules"].has_key?("aufs") }
+  end
 end
 
 execute "fetch go" do
